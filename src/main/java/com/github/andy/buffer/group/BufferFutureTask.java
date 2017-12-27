@@ -20,14 +20,17 @@ public class BufferFutureTask<E, R> implements BufferFuture<R> {
     /**
      * 最终返回的结果，通过state读写
      */
-    private volatile R result;
+    private volatile Object result;
 
     public BufferFutureTask(E element) {
         this.element = element;
         this.futureTask = new FutureTask<R>(new Callable<R>() {
             @Override
             public R call() throws Exception {
-                return result;
+                if (result instanceof Exception) {
+                    throw (Exception) result;
+                }
+                return (R) result;
             }
         });
     }
@@ -46,7 +49,15 @@ public class BufferFutureTask<E, R> implements BufferFuture<R> {
         return futureTask.get(timeout, unit);
     }
 
-    protected void complete(R result) {
+    protected void completeSuccess(R result) {
+        complete(result);
+    }
+
+    protected void completeFail(Exception ex) {
+        complete(ex);
+    }
+
+    private void complete(Object result) {
         if (this.result == null) {
             synchronized (this) {
                 if (this.result == null) {

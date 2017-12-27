@@ -20,10 +20,6 @@ public class ShardBufferGroupProcessorBuilder<E, G, R> {
     private ShardBufferProcessorStrategy<E> shardBufferProcessorStrategy;
     private BufferProcessExecutorFactory bufferProcessExecutorFactory;
 
-    public static <E, G, R> ShardBufferGroupProcessorBuilder<E, G, R> newBuilder() {
-        return new ShardBufferGroupProcessorBuilder<E, G, R>();
-    }
-
     public ShardBufferGroupProcessorBuilder<E, G, R> bufferQueueSize(int bufferQueueSize) {
         this.bufferQueueSize = bufferQueueSize;
         return this;

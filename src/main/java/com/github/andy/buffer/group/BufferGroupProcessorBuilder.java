@@ -18,10 +18,6 @@ public class BufferGroupProcessorBuilder<E, G, R> {
     private BufferGroupHandler<E, R> bufferGroupHandler;
     private ExecutorService bufferProcessExecutor;
 
-    public static <E, G, R> BufferGroupProcessorBuilder<E, G, R> newBuilder() {
-        return new BufferGroupProcessorBuilder<E, G, R>();
-    }
-
     public BufferGroupProcessorBuilder<E, G, R> bufferQueueSize(int bufferQueueSize) {
         this.bufferQueueSize = bufferQueueSize;
         return this;

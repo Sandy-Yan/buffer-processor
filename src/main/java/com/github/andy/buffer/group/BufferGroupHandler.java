@@ -8,5 +8,5 @@ import java.util.Map;
  */
 public interface BufferGroupHandler<E, R> {
 
-    Map<E, R> handle(List<E> elements);
+    Map<E, R> handle(List<E> elements) throws Exception;
 }

@@ -17,6 +17,10 @@ public class ShardBufferGroupProcessor<E, G, R> {
         this.shardBufferProcessorStrategy = shardBufferProcessorStrategy;
     }
 
+    public static <E, G, R> ShardBufferGroupProcessorBuilder<E, G, R> newBuilder() {
+        return new ShardBufferGroupProcessorBuilder<E, G, R>();
+    }
+
     /**
      * 提交请求数据到缓冲处理器入口
      *

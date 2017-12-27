@@ -26,8 +26,8 @@ ShardBufferGroupProcessor<TestElement, Long, String> shardBufferProcessor = Shar
        
 // 准备处理的对象
 TestElement element = new TestElement();
-element.setId(id);
-element.setName("xx-" + id);
+element.setId(1);
+element.setName("张三");
        
 // 提交处理对象到缓冲处理器处理并获取Future
 BufferFuture<String> future = shardBufferProcessor.submit(element);

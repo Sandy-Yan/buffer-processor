@@ -5,7 +5,7 @@ import com.google.common.base.Preconditions;
 import java.util.concurrent.*;
 
 /**
- * Created by andy on 17/12/12.
+ * Created by yanshanguang on 17/12/12.
  */
 public class BufferGroupProcessorBuilder<E, G, R> {
 
@@ -14,6 +14,7 @@ public class BufferGroupProcessorBuilder<E, G, R> {
 
     private int bufferQueueSize;
     private int consumeBatchSize;
+    private int maxConsumeIntervalSleepMs;
     private BufferGroupStrategy<E, G> bufferGroupStrategy;
     private BufferGroupHandler<E, R> bufferGroupHandler;
     private ExecutorService bufferProcessExecutor;
@@ -25,6 +26,11 @@ public class BufferGroupProcessorBuilder<E, G, R> {
 
     public BufferGroupProcessorBuilder<E, G, R> consumeBatchSize(int consumeBatchSize) {
         this.consumeBatchSize = consumeBatchSize;
+        return this;
+    }
+
+    public BufferGroupProcessorBuilder<E, G, R> maxConsumeIntervalSleepMs(int maxConsumeIntervalSleepMs) {
+        this.maxConsumeIntervalSleepMs = maxConsumeIntervalSleepMs;
         return this;
     }
 
@@ -57,6 +63,9 @@ public class BufferGroupProcessorBuilder<E, G, R> {
         Preconditions.checkArgument(consumeBatchSize > 0,
                 "必须设置项consumeBatchSize必须大于0。");
 
+        Preconditions.checkArgument(maxConsumeIntervalSleepMs >= 0,
+                "必须设置项maxConsumeIntervalSleepMs必须大于等于0。");
+
         Preconditions.checkArgument(bufferGroupStrategy != null,
                 "必须设置项bufferGroupStrategy为Null。");
 
@@ -67,7 +76,7 @@ public class BufferGroupProcessorBuilder<E, G, R> {
 
     private BufferGroupProcessor<E, G, R> newBufferGroupProcessor() {
         return new BufferGroupProcessor<E, G, R>(bufferQueueSize, consumeBatchSize,
-                bufferGroupStrategy, bufferGroupHandler, newBufferProcessExecutor());
+                maxConsumeIntervalSleepMs, bufferGroupStrategy, bufferGroupHandler, newBufferProcessExecutor());
     }
 
     private ExecutorService newBufferProcessExecutor() {

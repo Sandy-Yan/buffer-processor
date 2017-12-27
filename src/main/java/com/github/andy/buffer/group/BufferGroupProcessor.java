@@ -7,11 +7,9 @@ import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -25,6 +23,8 @@ public class BufferGroupProcessor<E, G, R> {
 
     private final int consumeBatchSize;
 
+    private final int maxConsumeIntervalSleepMs;
+
     private final BufferGroupStrategy<E, G> bufferGroupStrategy;
 
     private final ExecutorService consumeExecutorService;
@@ -37,13 +37,17 @@ public class BufferGroupProcessor<E, G, R> {
 
     private final AtomicBoolean running = new AtomicBoolean();
 
+    private final AtomicLong lastStartTimestamp = new AtomicLong(System.currentTimeMillis());
+
     public BufferGroupProcessor(int bufferQueueSize,
                                 int consumeBatchSize,
+                                int maxConsumeIntervalSleepMs,
                                 BufferGroupStrategy<E, G> bufferGroupStrategy,
                                 BufferGroupHandler<E, R> bufferGroupHandler,
                                 ExecutorService processExecutorService) {
         this.bufferQueue = new LinkedBlockingQueue<>(bufferQueueSize);
         this.consumeBatchSize = consumeBatchSize;
+        this.maxConsumeIntervalSleepMs = maxConsumeIntervalSleepMs;
         this.consumeExecutorService = Executors.newSingleThreadExecutor();
         this.bufferGroupStrategy = bufferGroupStrategy;
         this.bufferGroupHandler = bufferGroupHandler;
@@ -95,6 +99,7 @@ public class BufferGroupProcessor<E, G, R> {
         try {
             running.set(true);
             while (!bufferQueue.isEmpty()) {
+                trySleepBeforeConsume();
                 List<BufferFutureTask<E, R>> bufferFutureTasks = new ArrayList<BufferFutureTask<E, R>>(Math.min(consumeBatchSize, bufferQueue.size()));
                 bufferQueue.drainTo(bufferFutureTasks, consumeBatchSize);
                 if (!bufferFutureTasks.isEmpty()) {
@@ -104,6 +109,21 @@ public class BufferGroupProcessor<E, G, R> {
         } finally {
             running.set(false);
             lock.unlock();
+        }
+    }
+
+    private void trySleepBeforeConsume() {
+        long preStartTimestamp = lastStartTimestamp.get();
+        lastStartTimestamp.set(System.currentTimeMillis());
+        if (maxConsumeIntervalSleepMs > 0 && bufferQueue.size() < consumeBatchSize) {
+            long maySleepMs = maxConsumeIntervalSleepMs - (System.currentTimeMillis() - preStartTimestamp);
+            if (maySleepMs > 0L) {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(Math.min(maySleepMs, maxConsumeIntervalSleepMs));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
     }
 

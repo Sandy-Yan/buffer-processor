@@ -14,6 +14,7 @@ public class ShardBufferGroupProcessorBuilder<E, G, R> {
 
     private int bufferQueueSize;
     private int consumeBatchSize;
+    private int maxConsumeIntervalSleepMs;
     private BufferGroupStrategy<E, G> bufferGroupStrategy;
     private BufferGroupHandler<E, R> bufferGroupHandler;
     private int shardGroupProcessorSize;
@@ -27,6 +28,11 @@ public class ShardBufferGroupProcessorBuilder<E, G, R> {
 
     public ShardBufferGroupProcessorBuilder<E, G, R> consumeBatchSize(int consumeBatchSize) {
         this.consumeBatchSize = consumeBatchSize;
+        return this;
+    }
+
+    public ShardBufferGroupProcessorBuilder<E, G, R> maxConsumeIntervalSleepMs(int maxConsumeIntervalSleepMs) {
+        this.maxConsumeIntervalSleepMs = maxConsumeIntervalSleepMs;
         return this;
     }
 
@@ -57,9 +63,7 @@ public class ShardBufferGroupProcessorBuilder<E, G, R> {
 
     public ShardBufferGroupProcessor<E, G, R> build() {
         check();
-
         BufferGroupProcessor<E, G, R>[] bufferGroupProcessors = newBufferGroupProcessors();
-
         return new ShardBufferGroupProcessor<E, G, R>(bufferGroupProcessors, shardBufferProcessorStrategy);
     }
 
@@ -77,6 +81,9 @@ public class ShardBufferGroupProcessorBuilder<E, G, R> {
         Preconditions.checkArgument(consumeBatchSize > 0,
                 "必须设置项consumeBatchSize必须大于0。");
 
+        Preconditions.checkArgument(maxConsumeIntervalSleepMs >= 0,
+                "必须设置项maxConsumeIntervalSleepMs必须大于等于0。");
+
         Preconditions.checkArgument(bufferGroupStrategy != null,
                 "必须设置项bufferGroupStrategy为Null。");
 
@@ -89,7 +96,7 @@ public class ShardBufferGroupProcessorBuilder<E, G, R> {
         BufferGroupProcessor<E, G, R>[] bufferGroupProcessors = new BufferGroupProcessor[shardGroupProcessorSize];
         for (int i = 0; i < shardGroupProcessorSize; i++) {
             bufferGroupProcessors[i] = new BufferGroupProcessor<E, G, R>(bufferQueueSize, consumeBatchSize,
-                    bufferGroupStrategy, bufferGroupHandler, newBufferProcessExecutor());
+                    maxConsumeIntervalSleepMs, bufferGroupStrategy, bufferGroupHandler, newBufferProcessExecutor());
         }
 
         return bufferGroupProcessors;

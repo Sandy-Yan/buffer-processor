@@ -73,6 +73,14 @@ public class BufferGroupProcessor<E, G, R> {
         return bufferFutureTask;
     }
 
+    public long getQueueSize() {
+        return bufferQueue.size();
+    }
+
+    public boolean isRunning() {
+        return running.get();
+    }
+
     private BufferFutureTask<E, R> newBufferFutureTask(E element) {
         return new BufferFutureTask<E, R>(element);
     }

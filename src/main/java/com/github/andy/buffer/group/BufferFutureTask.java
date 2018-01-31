@@ -3,6 +3,8 @@ package com.github.andy.buffer.group;
 import java.util.concurrent.*;
 
 /**
+ * 缓冲处理器的Queue中的FutureTask实体
+ * <p>
  * Created by yanshanguang on 17/12/8.
  */
 public class BufferFutureTask<E, R> implements BufferFuture<R> {

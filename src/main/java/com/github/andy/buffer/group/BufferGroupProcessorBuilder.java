@@ -2,22 +2,17 @@ package com.github.andy.buffer.group;
 
 import com.google.common.base.Preconditions;
 
-import java.util.concurrent.*;
-
 /**
  * Created by yanshanguang on 17/12/12.
  */
 public class BufferGroupProcessorBuilder<E, G, R> {
-
-    private static int DEFAULT_PROCESS_EXECUTOR_THREADS = 10;
-    private static int DEFAULT_PROCESS_EXECUTOR_QUEUE_SIZE = 1000;
 
     private int bufferQueueSize;
     private int consumeBatchSize;
     private int maxConsumeIntervalSleepMs;
     private BufferGroupStrategy<E, G> bufferGroupStrategy;
     private BufferGroupHandler<E, R> bufferGroupHandler;
-    private ExecutorService bufferProcessExecutor;
+    private BufferProcessExecutorFactory bufferProcessExecutorFactory;
 
     public BufferGroupProcessorBuilder<E, G, R> bufferQueueSize(int bufferQueueSize) {
         this.bufferQueueSize = bufferQueueSize;
@@ -44,11 +39,10 @@ public class BufferGroupProcessorBuilder<E, G, R> {
         return this;
     }
 
-    public BufferGroupProcessorBuilder<E, G, R> bufferProcessExecutor(ExecutorService bufferProcessExecutor) {
-        this.bufferProcessExecutor = bufferProcessExecutor;
+    public BufferGroupProcessorBuilder<E, G, R> bufferProcessExecutorFactory(BufferProcessExecutorFactory bufferProcessExecutorFactory) {
+        this.bufferProcessExecutorFactory = bufferProcessExecutorFactory;
         return this;
     }
-
 
     public BufferGroupProcessor<E, G, R> build() {
         check();
@@ -75,21 +69,12 @@ public class BufferGroupProcessorBuilder<E, G, R> {
     }
 
     private BufferGroupProcessor<E, G, R> newBufferGroupProcessor() {
-        return new BufferGroupProcessor<E, G, R>(bufferQueueSize, consumeBatchSize,
-                maxConsumeIntervalSleepMs, bufferGroupStrategy, bufferGroupHandler, newBufferProcessExecutor());
+        return newBufferProcessorCreator().get();
     }
 
-    private ExecutorService newBufferProcessExecutor() {
-        if (bufferProcessExecutor != null) {
-            return bufferProcessExecutor;
-        }
-
-        return new ThreadPoolExecutor(DEFAULT_PROCESS_EXECUTOR_THREADS,
-                DEFAULT_PROCESS_EXECUTOR_THREADS,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<Runnable>(DEFAULT_PROCESS_EXECUTOR_QUEUE_SIZE),
-                Executors.defaultThreadFactory(),
-                new ThreadPoolExecutor.CallerRunsPolicy());
+    private BufferGroupProcessorCreator<E, G, R> newBufferProcessorCreator() {
+        return new BufferGroupProcessorCreator<E, G, R>(bufferQueueSize, consumeBatchSize,
+                maxConsumeIntervalSleepMs, bufferGroupStrategy, bufferGroupHandler, bufferProcessExecutorFactory);
     }
+
 }

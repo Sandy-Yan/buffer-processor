@@ -1,0 +1,56 @@
+package com.github.andy.buffer.group.shard;
+
+import com.github.andy.buffer.group.BufferGroupProcessor;
+import com.github.andy.buffer.group.BufferGroupProcessorCreator;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+/**
+ * ShardBufferProcessor的处理器的管理容器
+ * <p>
+ * Created by yanshanguang on 18/1/31.
+ */
+public class ShardBufferProcessorContainer<E, G, R, SK> {
+
+    private final ConcurrentMap<SK, BufferGroupProcessor<E, G, R>> bufferProcessorsMap = new ConcurrentHashMap<>();
+
+    private final BufferGroupProcessorCreator<E, G, R> bufferProcessorCreator;
+
+    public ShardBufferProcessorContainer(BufferGroupProcessorCreator<E, G, R> bufferProcessorCreator) {
+        this.bufferProcessorCreator = bufferProcessorCreator;
+    }
+
+    public BufferGroupProcessor<E, G, R> get(SK shardKey) {
+        return bufferProcessorsMap.get(shardKey);
+    }
+
+    public boolean isExist(SK shardKey) {
+        return bufferProcessorsMap.containsKey(shardKey);
+    }
+
+    public boolean isNotExist(SK shardKey) {
+        return !isExist(shardKey);
+    }
+
+    public void add(SK shardKey) {
+        if (isExist(shardKey)) {
+            return;
+        }
+
+        String shardKeyStr = keyToString(shardKey);
+        synchronized (shardKeyStr.intern()) {
+            if (isExist(shardKey)) {
+                return;
+            }
+
+            // 真正添加缓冲处理器
+            bufferProcessorsMap.put(shardKey, bufferProcessorCreator.get());
+        }
+    }
+
+    private String keyToString(SK shardKey) {
+        return shardKey + "";
+    }
+
+}

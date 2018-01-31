@@ -1,4 +1,4 @@
-#### 描述: 本地数据缓冲分组处理组件。
+#### 描述: 本地数据缓冲处理组件。
 
 #### Get Started
 
@@ -14,15 +14,17 @@
 
 ```Java
     
-// 创建缓冲处理器
-ShardBufferGroupProcessor<TestElement, Long, String> shardBufferProcessor = ShardBufferGroupProcessor.<TestElement, Long, String>newBuilder()
-                .bufferQueueSize(1000)//
-                .consumeBatchSize(10)//
-                .bufferGroupStrategy(new TestBufferGroupStrategy())//
-                .bufferGroupHandler(new TestBufferGroupHandler())//
-                .shardGroupProcessorSize(2)//
-                .shardBufferProcessorStrategy(new TestShardBufferProcessorStrategy())//
-                .build();
+// 创建Shard缓冲处理器
+ShardBufferProcessor<TestElement, Long, String> shardBufferProcessor = ShardBufferProcessor.<TestElement, Long, String>newBuilder()
+                                                                                       .bufferQueueSize(2000)//
+                                                                                       .consumeBatchSize(20)//
+                                                                                       .maxConsumeIntervalSleepMs(20)//
+                                                                                       .bufferGroupStrategy(new TestBufferGroupStrategy())//
+                                                                                       .bufferGroupHandler(new TestBufferGroupHandler())//
+                                                                                       //.bufferProcessExecutorFactory()//
+                                                                                       .shardBufferProcessorSize(2)//
+                                                                                       .shardBufferProcessorStrategy(new TestShardBufferProcessorStrategy())//
+                                                                                       .build();
        
 // 准备处理的对象
 TestElement element = new TestElement();

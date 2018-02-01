@@ -36,6 +36,10 @@ public class ShardBufferProcessorV2<E, G, R, SK> {
         return processor.submit(element);
     }
 
+    public int getProcessorCount() {
+        return bufferProcessorContainer.getProcessorCount();
+    }
+
     private BufferGroupProcessor<E, G, R> routeProcessor(E element) {
 
         // 路由缓冲处理器的KEY

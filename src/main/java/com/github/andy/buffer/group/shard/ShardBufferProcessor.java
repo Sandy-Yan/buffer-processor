@@ -36,6 +36,10 @@ public class ShardBufferProcessor<E, G, R> {
         return processor.submit(element);
     }
 
+    public int getProcessorCount() {
+        return bufferProcessors.length;
+    }
+
     private BufferGroupProcessor<E, G, R> routeProcessor(E element) {
         int processorsCount = bufferProcessors.length;
         int processorsIndex = shardBufferProcessorStrategy.routeIDX(processorsCount, element);

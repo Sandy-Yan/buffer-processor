@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class ShardBufferProcessorContainer<E, G, R, SK> {
 
-    private final ConcurrentMap<SK, BufferGroupProcessor<E, G, R>> bufferProcessorsMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<SK, BufferProcessorLazyer> bufferProcessorsMap = new ConcurrentHashMap<>();
 
     private final BufferGroupProcessorCreator<E, G, R> bufferProcessorCreator;
 
@@ -22,7 +22,7 @@ public class ShardBufferProcessorContainer<E, G, R, SK> {
     }
 
     public BufferGroupProcessor<E, G, R> get(SK shardKey) {
-        return bufferProcessorsMap.get(shardKey);
+        return bufferProcessorsMap.get(shardKey).get();
     }
 
     public boolean isExist(SK shardKey) {
@@ -38,19 +38,29 @@ public class ShardBufferProcessorContainer<E, G, R, SK> {
             return;
         }
 
-        String shardKeyStr = keyToString(shardKey);
-        synchronized (shardKeyStr.intern()) {
-            if (isExist(shardKey)) {
-                return;
-            }
-
-            // 真正添加缓冲处理器
-            bufferProcessorsMap.put(shardKey, bufferProcessorCreator.get());
-        }
+        // 添加缓冲处理器的Lazyer到Map中
+        bufferProcessorsMap.putIfAbsent(shardKey, new BufferProcessorLazyer());
     }
 
-    private String keyToString(SK shardKey) {
-        return shardKey + "";
+    public int getProcessorCount() {
+        return bufferProcessorsMap.size();
+    }
+
+    private class BufferProcessorLazyer {
+
+        private volatile BufferGroupProcessor<E, G, R> bufferProcessor;
+
+        public BufferGroupProcessor<E, G, R> get() {
+            if (bufferProcessor == null) {
+                synchronized (this) {
+                    if (bufferProcessor == null) {
+                        bufferProcessor = bufferProcessorCreator.get();
+                    }
+                }
+            }
+
+            return bufferProcessor;
+        }
     }
 
 }

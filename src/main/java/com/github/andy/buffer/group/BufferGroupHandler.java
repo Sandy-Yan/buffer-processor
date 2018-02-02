@@ -8,7 +8,7 @@ import java.util.Map;
  * <p>
  * Created by yanshanguang on 17/12/8.
  */
-public interface BufferGroupHandler<E, R> {
+public interface BufferGroupHandler<E, G, R> {
 
-    Map<E, R> handle(List<E> elements) throws Exception;
+    Map<E, R> handle(final G group, final List<E> elements) throws Exception;
 }

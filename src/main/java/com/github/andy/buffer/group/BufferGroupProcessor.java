@@ -29,7 +29,7 @@ public class BufferGroupProcessor<E, G, R> {
 
     private final ExecutorService consumeExecutorService;
 
-    private final BufferGroupHandler<E, R> bufferGroupHandler;
+    private final BufferGroupHandler<E, G, R> bufferGroupHandler;
 
     private final ExecutorService processExecutorService;
 
@@ -43,7 +43,7 @@ public class BufferGroupProcessor<E, G, R> {
                                 int consumeBatchSize,
                                 int maxConsumeIntervalSleepMs,
                                 BufferGroupStrategy<E, G> bufferGroupStrategy,
-                                BufferGroupHandler<E, R> bufferGroupHandler,
+                                BufferGroupHandler<E, G, R> bufferGroupHandler,
                                 ExecutorService processExecutorService) {
         this.bufferQueue = new LinkedBlockingQueue<>(bufferQueueSize);
         this.consumeBatchSize = consumeBatchSize;
@@ -216,7 +216,7 @@ public class BufferGroupProcessor<E, G, R> {
             // 执行分组对象处理
             Map<E, R> elementResultsMap;
             try {
-                elementResultsMap = bufferGroupHandler.handle(elements);
+                elementResultsMap = bufferGroupHandler.handle(group, elements);
             } catch (Exception ex) {
                 // 完成分组对象处理异常结果响应
                 completeFails(bufferFutureTasks, ex);

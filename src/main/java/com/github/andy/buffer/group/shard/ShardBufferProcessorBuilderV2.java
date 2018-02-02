@@ -15,7 +15,7 @@ public class ShardBufferProcessorBuilderV2<E, G, R, SK> {
     private int consumeBatchSize;
     private int maxConsumeIntervalSleepMs;
     private BufferGroupStrategy<E, G> bufferGroupStrategy;
-    private BufferGroupHandler<E, R> bufferGroupHandler;
+    private BufferGroupHandler<E, G, R> bufferGroupHandler;
     private BufferProcessExecutorFactory bufferProcessExecutorFactory;
     private ShardBufferProcessorIniter<E, G, R, SK> shardBufferProcessorIniter;
     private ShardBufferProcessorStrategyV2<E, G, R, SK> shardBufferProcessorStrategy;
@@ -40,7 +40,7 @@ public class ShardBufferProcessorBuilderV2<E, G, R, SK> {
         return this;
     }
 
-    public ShardBufferProcessorBuilderV2<E, G, R, SK> bufferGroupHandler(BufferGroupHandler<E, R> bufferGroupHandler) {
+    public ShardBufferProcessorBuilderV2<E, G, R, SK> bufferGroupHandler(BufferGroupHandler<E, G, R> bufferGroupHandler) {
         this.bufferGroupHandler = bufferGroupHandler;
         return this;
     }

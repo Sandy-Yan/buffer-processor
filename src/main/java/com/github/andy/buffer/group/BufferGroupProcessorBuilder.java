@@ -11,7 +11,7 @@ public class BufferGroupProcessorBuilder<E, G, R> {
     private int consumeBatchSize;
     private int maxConsumeIntervalSleepMs;
     private BufferGroupStrategy<E, G> bufferGroupStrategy;
-    private BufferGroupHandler<E, R> bufferGroupHandler;
+    private BufferGroupHandler<E, G, R> bufferGroupHandler;
     private BufferProcessExecutorFactory bufferProcessExecutorFactory;
 
     public BufferGroupProcessorBuilder<E, G, R> bufferQueueSize(int bufferQueueSize) {
@@ -34,7 +34,7 @@ public class BufferGroupProcessorBuilder<E, G, R> {
         return this;
     }
 
-    public BufferGroupProcessorBuilder<E, G, R> bufferGroupHandler(BufferGroupHandler<E, R> bufferGroupHandler) {
+    public BufferGroupProcessorBuilder<E, G, R> bufferGroupHandler(BufferGroupHandler<E, G, R> bufferGroupHandler) {
         this.bufferGroupHandler = bufferGroupHandler;
         return this;
     }

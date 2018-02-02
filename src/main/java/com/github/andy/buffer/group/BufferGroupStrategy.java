@@ -7,5 +7,5 @@ package com.github.andy.buffer.group;
  */
 public interface BufferGroupStrategy<E, G> {
 
-    G doGroup(E element) throws Exception;
+    G doGroup(final E element) throws Exception;
 }

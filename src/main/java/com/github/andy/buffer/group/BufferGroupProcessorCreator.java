@@ -16,14 +16,14 @@ public class BufferGroupProcessorCreator<E, G, R> {
     private final int consumeBatchSize;
     private final int maxConsumeIntervalSleepMs;
     private final BufferGroupStrategy<E, G> bufferGroupStrategy;
-    private final BufferGroupHandler<E, R> bufferGroupHandler;
+    private final BufferGroupHandler<E, G, R> bufferGroupHandler;
     private final BufferProcessExecutorFactory bufferProcessExecutorFactory;
 
     public BufferGroupProcessorCreator(int bufferQueueSize,
                                        int consumeBatchSize,
                                        int maxConsumeIntervalSleepMs,
                                        BufferGroupStrategy<E, G> bufferGroupStrategy,
-                                       BufferGroupHandler<E, R> bufferGroupHandler,
+                                       BufferGroupHandler<E, G, R> bufferGroupHandler,
                                        BufferProcessExecutorFactory bufferProcessExecutorFactory) {
         this.bufferQueueSize = bufferQueueSize;
         this.consumeBatchSize = consumeBatchSize;

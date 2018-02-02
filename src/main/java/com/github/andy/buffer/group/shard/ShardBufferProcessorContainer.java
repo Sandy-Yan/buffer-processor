@@ -22,7 +22,8 @@ public class ShardBufferProcessorContainer<E, G, R, SK> {
     }
 
     public BufferGroupProcessor<E, G, R> get(SK shardKey) {
-        return bufferProcessorsMap.get(shardKey).get();
+        BufferProcessorLazyer lazyer = bufferProcessorsMap.get(shardKey);
+        return lazyer != null ? lazyer.get() : null;
     }
 
     public boolean isExist(SK shardKey) {

@@ -12,12 +12,16 @@ public class ShardBufferProcessorV2<E, G, R, SK> {
 
     private final ShardBufferProcessorContainer<E, G, R, SK> bufferProcessorContainer;
 
-    private final ShardBufferProcessorStrategyV2<E, G, R, SK> shardBufferProcessorStrategy;
+    private final ShardBufferProcessorStrategyV2<E, SK> shardBufferProcessorStrategy;
+
+    private final BufferProcessorNotFoundCallback<E, G, R, SK> bufferProcessorNotFoundCallback;
 
     public ShardBufferProcessorV2(ShardBufferProcessorContainer<E, G, R, SK> bufferProcessorContainer,
-                                  ShardBufferProcessorStrategyV2<E, G, R, SK> shardBufferProcessorStrategy) {
+                                  ShardBufferProcessorStrategyV2<E, SK> shardBufferProcessorStrategy,
+                                  BufferProcessorNotFoundCallback<E, G, R, SK> bufferProcessorNotFoundCallback) {
         this.bufferProcessorContainer = bufferProcessorContainer;
         this.shardBufferProcessorStrategy = shardBufferProcessorStrategy;
+        this.bufferProcessorNotFoundCallback = bufferProcessorNotFoundCallback;
     }
 
     public static <E, G, R, SK> ShardBufferProcessorBuilderV2<E, G, R, SK> newBuilder() {
@@ -43,10 +47,19 @@ public class ShardBufferProcessorV2<E, G, R, SK> {
     private BufferGroupProcessor<E, G, R> routeProcessor(E element) {
 
         // 路由缓冲处理器的KEY
-        SK shardKey = shardBufferProcessorStrategy.routeSK(bufferProcessorContainer, element);
+        SK shardKey = shardBufferProcessorStrategy.routeSK(element);
 
         // 用路由KEY取缓冲处理器
         BufferGroupProcessor<E, G, R> bufferProcessor = bufferProcessorContainer.get(shardKey);
+
+        if (bufferProcessor != null) {
+            return bufferProcessor;
+        }
+
+        if (bufferProcessorNotFoundCallback != null) {
+            bufferProcessorNotFoundCallback.execute(bufferProcessorContainer, element);
+            bufferProcessor = bufferProcessorContainer.get(shardKey);
+        }
 
         if (bufferProcessor == null) {
             throw new RuntimeException("[ShardBufferProcessor] 路由缓冲处理器，结果未找到！");

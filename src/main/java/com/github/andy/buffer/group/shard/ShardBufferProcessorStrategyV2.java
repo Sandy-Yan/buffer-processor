@@ -5,7 +5,7 @@ package com.github.andy.buffer.group.shard;
  * <p>
  * Created by yanshanguang on 18/1/30.
  */
-public interface ShardBufferProcessorStrategyV2<E, G, R, SK> {
+public interface ShardBufferProcessorStrategyV2<E, SK> {
 
-    SK routeSK(ShardBufferProcessorContainer<E, G, R, SK> bufferProcessorContainer, E element);
+    SK routeSK(final E element);
 }

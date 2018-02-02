@@ -18,7 +18,8 @@ public class ShardBufferProcessorBuilderV2<E, G, R, SK> {
     private BufferGroupHandler<E, G, R> bufferGroupHandler;
     private BufferProcessExecutorFactory bufferProcessExecutorFactory;
     private ShardBufferProcessorIniter<E, G, R, SK> shardBufferProcessorIniter;
-    private ShardBufferProcessorStrategyV2<E, G, R, SK> shardBufferProcessorStrategy;
+    private ShardBufferProcessorStrategyV2<E, SK> shardBufferProcessorStrategy;
+    private BufferProcessorNotFoundCallback<E, G, R, SK> bufferProcessorNotFoundCallback;
 
     public ShardBufferProcessorBuilderV2<E, G, R, SK> bufferQueueSize(int bufferQueueSize) {
         this.bufferQueueSize = bufferQueueSize;
@@ -55,8 +56,13 @@ public class ShardBufferProcessorBuilderV2<E, G, R, SK> {
         return this;
     }
 
-    public ShardBufferProcessorBuilderV2<E, G, R, SK> shardBufferProcessorStrategy(ShardBufferProcessorStrategyV2<E, G, R, SK> shardBufferProcessorStrategy) {
+    public ShardBufferProcessorBuilderV2<E, G, R, SK> shardBufferProcessorStrategy(ShardBufferProcessorStrategyV2<E, SK> shardBufferProcessorStrategy) {
         this.shardBufferProcessorStrategy = shardBufferProcessorStrategy;
+        return this;
+    }
+
+    public ShardBufferProcessorBuilderV2<E, G, R, SK> bufferProcessorNotFoundCallback(BufferProcessorNotFoundCallback<E, G, R, SK> bufferProcessorNotFoundCallback) {
+        this.bufferProcessorNotFoundCallback = bufferProcessorNotFoundCallback;
         return this;
     }
 
@@ -66,7 +72,7 @@ public class ShardBufferProcessorBuilderV2<E, G, R, SK> {
         // 构建及初始化缓冲处理器的容器
         ShardBufferProcessorContainer<E, G, R, SK> bufferProcessorContainer = newAndInitBufferProcessorContainer();
 
-        return new ShardBufferProcessorV2<E, G, R, SK>(bufferProcessorContainer, shardBufferProcessorStrategy);
+        return new ShardBufferProcessorV2<E, G, R, SK>(bufferProcessorContainer, shardBufferProcessorStrategy, bufferProcessorNotFoundCallback);
     }
 
     private void check() {

@@ -60,9 +60,6 @@ public class BufferGroupProcessorBuilder<E, G, R> {
         Preconditions.checkArgument(maxConsumeIntervalSleepMs >= 0,
                 "必须设置项maxConsumeIntervalSleepMs必须大于等于0。");
 
-        Preconditions.checkArgument(bufferGroupStrategy != null,
-                "必须设置项bufferGroupStrategy为Null。");
-
         Preconditions.checkArgument(bufferGroupHandler != null,
                 "必须设置项bufferGroupHandler为Null。");
 

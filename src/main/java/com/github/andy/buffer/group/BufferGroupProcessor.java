@@ -136,10 +136,19 @@ public class BufferGroupProcessor<E, G, R> {
     }
 
     private void doConsume(List<BufferFutureTask<E, R>> toConsumeBufferFutureTasks) {
-        Map<G, List<BufferFutureTask<E, R>>> groupBufferFutureTasksMap = doGroupBufferFutureTasks(toConsumeBufferFutureTasks);
-        for (Map.Entry<G, List<BufferFutureTask<E, R>>> groupBufferFutureTasksEntry : groupBufferFutureTasksMap.entrySet()) {
-            doHandleGroupBufferFutureTasks(groupBufferFutureTasksEntry);
+        if (!isHasBufferGroupStrategy()) {
+            doHandleGroupBufferFutureTasks(null, toConsumeBufferFutureTasks);
+            return;
         }
+
+        Map<G, List<BufferFutureTask<E, R>>> groupBufferFutureTasksMap = doGroupBufferFutureTasks(toConsumeBufferFutureTasks);
+        for (Map.Entry<G, List<BufferFutureTask<E, R>>> groupEntry : groupBufferFutureTasksMap.entrySet()) {
+            doHandleGroupBufferFutureTasks(groupEntry.getKey(), groupEntry.getValue());
+        }
+    }
+
+    private boolean isHasBufferGroupStrategy() {
+        return bufferGroupStrategy != null;
     }
 
     private Map<G, List<BufferFutureTask<E, R>>> doGroupBufferFutureTasks(List<BufferFutureTask<E, R>> toConsumeBufferFutureTasks) {
@@ -176,13 +185,13 @@ public class BufferGroupProcessor<E, G, R> {
         completeFails(groupFailTasks, new GroupFailException("实体分组失败！请检查缓冲分组策略配置。"));
     }
 
-    private void doHandleGroupBufferFutureTasks(Map.Entry<G, List<BufferFutureTask<E, R>>> groupBufferFutureTasksEntry) {
+    private void doHandleGroupBufferFutureTasks(G group, List<BufferFutureTask<E, R>> bufferFutureTasks) {
         try {
             // 提交任务到执行分组对象处理的线程池
-            processExecutorService.execute(new GroupBufferFutureTasksHandleTask(groupBufferFutureTasksEntry));
+            processExecutorService.execute(new GroupBufferFutureTasksHandleTask(group, bufferFutureTasks));
         } catch (Exception ex) {
             // 提交任务失败处理，完成提交任务失败的异常响应
-            completeFails(groupBufferFutureTasksEntry.getValue(), ex);
+            completeFails(bufferFutureTasks, ex);
         }
     }
 
@@ -202,9 +211,9 @@ public class BufferGroupProcessor<E, G, R> {
 
         private final List<BufferFutureTask<E, R>> bufferFutureTasks;
 
-        public GroupBufferFutureTasksHandleTask(Map.Entry<G, List<BufferFutureTask<E, R>>> groupBufferFutureTasksEntry) {
-            this.group = groupBufferFutureTasksEntry.getKey();
-            this.bufferFutureTasks = groupBufferFutureTasksEntry.getValue();
+        public GroupBufferFutureTasksHandleTask(G group, List<BufferFutureTask<E, R>> bufferFutureTasks) {
+            this.group = group;
+            this.bufferFutureTasks = bufferFutureTasks;
         }
 
         @Override

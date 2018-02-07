@@ -9,7 +9,7 @@ public class BufferGroupProcessorBuilder<E, G, R> {
 
     private int bufferQueueSize;
     private int consumeBatchSize;
-    private int maxConsumeIntervalSleepMs;
+    private int consumeWaitTimeoutMs;
     private BufferGroupStrategy<E, G> bufferGroupStrategy;
     private BufferGroupHandler<E, G, R> bufferGroupHandler;
     private BufferProcessExecutorFactory bufferProcessExecutorFactory;
@@ -24,8 +24,8 @@ public class BufferGroupProcessorBuilder<E, G, R> {
         return this;
     }
 
-    public BufferGroupProcessorBuilder<E, G, R> maxConsumeIntervalSleepMs(int maxConsumeIntervalSleepMs) {
-        this.maxConsumeIntervalSleepMs = maxConsumeIntervalSleepMs;
+    public BufferGroupProcessorBuilder<E, G, R> consumeWaitTimeoutMs(int consumeWaitTimeoutMs) {
+        this.consumeWaitTimeoutMs = consumeWaitTimeoutMs;
         return this;
     }
 
@@ -57,8 +57,8 @@ public class BufferGroupProcessorBuilder<E, G, R> {
         Preconditions.checkArgument(consumeBatchSize > 0,
                 "必须设置项consumeBatchSize必须大于0。");
 
-        Preconditions.checkArgument(maxConsumeIntervalSleepMs >= 0,
-                "必须设置项maxConsumeIntervalSleepMs必须大于等于0。");
+        Preconditions.checkArgument(consumeWaitTimeoutMs >= 0,
+                "必须设置项consumeWaitTimeoutMs必须大于等于0。");
 
         Preconditions.checkArgument(bufferGroupHandler != null,
                 "必须设置项bufferGroupHandler为Null。");
@@ -71,7 +71,7 @@ public class BufferGroupProcessorBuilder<E, G, R> {
 
     private BufferGroupProcessorCreator<E, G, R> newBufferProcessorCreator() {
         return new BufferGroupProcessorCreator<E, G, R>(bufferQueueSize, consumeBatchSize,
-                maxConsumeIntervalSleepMs, bufferGroupStrategy, bufferGroupHandler, bufferProcessExecutorFactory);
+                consumeWaitTimeoutMs, bufferGroupStrategy, bufferGroupHandler, bufferProcessExecutorFactory);
     }
 
 }

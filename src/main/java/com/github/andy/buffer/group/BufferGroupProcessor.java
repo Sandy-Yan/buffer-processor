@@ -3,13 +3,13 @@ package com.github.andy.buffer.group;
 import com.github.andy.buffer.group.exception.GroupFailException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -23,13 +23,13 @@ public class BufferGroupProcessor<E, G, R> {
 
     private final int consumeBatchSize;
 
-    private final int maxConsumeIntervalSleepMs;
+    private final int consumeWaitTimeoutMs;
 
     private final BufferGroupStrategy<E, G> bufferGroupStrategy;
 
-    private final ExecutorService consumeExecutorService;
-
     private final BufferGroupHandler<E, G, R> bufferGroupHandler;
+
+    private final ExecutorService consumeExecutorService;
 
     private final ExecutorService processExecutorService;
 
@@ -37,20 +37,18 @@ public class BufferGroupProcessor<E, G, R> {
 
     private final AtomicBoolean running = new AtomicBoolean();
 
-    private final AtomicLong lastStartTimestamp = new AtomicLong(System.currentTimeMillis());
-
     public BufferGroupProcessor(int bufferQueueSize,
                                 int consumeBatchSize,
-                                int maxConsumeIntervalSleepMs,
+                                int consumeWaitTimeoutMs,
                                 BufferGroupStrategy<E, G> bufferGroupStrategy,
                                 BufferGroupHandler<E, G, R> bufferGroupHandler,
                                 ExecutorService processExecutorService) {
         this.bufferQueue = new LinkedBlockingQueue<>(bufferQueueSize);
         this.consumeBatchSize = consumeBatchSize;
-        this.maxConsumeIntervalSleepMs = maxConsumeIntervalSleepMs;
-        this.consumeExecutorService = Executors.newSingleThreadExecutor();
+        this.consumeWaitTimeoutMs = consumeWaitTimeoutMs;
         this.bufferGroupStrategy = bufferGroupStrategy;
         this.bufferGroupHandler = bufferGroupHandler;
+        this.consumeExecutorService = Executors.newSingleThreadExecutor();
         this.processExecutorService = processExecutorService;
         init();
     }
@@ -106,13 +104,9 @@ public class BufferGroupProcessor<E, G, R> {
         lock.lock();
         try {
             running.set(true);
-            while (!bufferQueue.isEmpty()) {
-                trySleepBeforeConsume();
-                List<BufferFutureTask<E, R>> bufferFutureTasks = new ArrayList<BufferFutureTask<E, R>>(Math.min(consumeBatchSize, bufferQueue.size()));
-                bufferQueue.drainTo(bufferFutureTasks, consumeBatchSize);
-                if (!bufferFutureTasks.isEmpty()) {
-                    doConsume(bufferFutureTasks);
-                }
+            while (hasQueueFutureTasks()) {
+                List<BufferFutureTask<E, R>> bufferFutureTasks = takeQueueFutureTasks();
+                doConsumeFutureTasks(bufferFutureTasks);
             }
         } finally {
             running.set(false);
@@ -120,30 +114,34 @@ public class BufferGroupProcessor<E, G, R> {
         }
     }
 
-    private void trySleepBeforeConsume() {
-        long preStartTimestamp = lastStartTimestamp.get();
-        lastStartTimestamp.set(System.currentTimeMillis());
-        if (maxConsumeIntervalSleepMs > 0 && bufferQueue.size() < consumeBatchSize) {
-            long maySleepMs = maxConsumeIntervalSleepMs - (System.currentTimeMillis() - preStartTimestamp);
-            if (maySleepMs > 0L) {
-                try {
-                    TimeUnit.MILLISECONDS.sleep(Math.min(maySleepMs, maxConsumeIntervalSleepMs));
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }
+    private boolean hasQueueFutureTasks() {
+        return !bufferQueue.isEmpty();
     }
 
-    private void doConsume(List<BufferFutureTask<E, R>> toConsumeBufferFutureTasks) {
-        if (!isHasBufferGroupStrategy()) {
-            doHandleGroupBufferFutureTasks(null, toConsumeBufferFutureTasks);
+    private List<BufferFutureTask<E, R>> takeQueueFutureTasks() {
+        List<BufferFutureTask<E, R>> futureTasks = new ArrayList<>(consumeBatchSize);
+        try {
+            Queues.drain(bufferQueue, futureTasks, consumeBatchSize, consumeWaitTimeoutMs, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return futureTasks;
+    }
+
+    private void doConsumeFutureTasks(List<BufferFutureTask<E, R>> toConsumeFutureTasks) {
+        if (toConsumeFutureTasks == null || toConsumeFutureTasks.isEmpty()) {
             return;
         }
 
-        Map<G, List<BufferFutureTask<E, R>>> groupBufferFutureTasksMap = doGroupBufferFutureTasks(toConsumeBufferFutureTasks);
-        for (Map.Entry<G, List<BufferFutureTask<E, R>>> groupEntry : groupBufferFutureTasksMap.entrySet()) {
-            doHandleGroupBufferFutureTasks(groupEntry.getKey(), groupEntry.getValue());
+        if (!isHasBufferGroupStrategy()) {
+            doHandleGroupFutureTasks(null, toConsumeFutureTasks);
+            return;
+        }
+
+        Map<G, List<BufferFutureTask<E, R>>> groupFutureTasksMap = doGroupFutureTasks(toConsumeFutureTasks);
+
+        for (Map.Entry<G, List<BufferFutureTask<E, R>>> groupEntry : groupFutureTasksMap.entrySet()) {
+            doHandleGroupFutureTasks(groupEntry.getKey(), groupEntry.getValue());
         }
     }
 
@@ -151,67 +149,68 @@ public class BufferGroupProcessor<E, G, R> {
         return bufferGroupStrategy != null;
     }
 
-    private Map<G, List<BufferFutureTask<E, R>>> doGroupBufferFutureTasks(List<BufferFutureTask<E, R>> toConsumeBufferFutureTasks) {
-        Map<G, List<BufferFutureTask<E, R>>> result = Maps.newHashMap();
-        List<BufferFutureTask<E, R>> groupFailTasks = Lists.newArrayList();
-        for (BufferFutureTask<E, R> bufferFutureTask : toConsumeBufferFutureTasks) {
-            E element = bufferFutureTask.getElement();
-            G group;
+    private Map<G, List<BufferFutureTask<E, R>>> doGroupFutureTasks(List<BufferFutureTask<E, R>> toConsumeFutureTasks) {
+        Map<G, List<BufferFutureTask<E, R>>> groupFutureTasksMap = Maps.newHashMap();
+        List<BufferFutureTask<E, R>> groupFailFutureTasks = Lists.newArrayList();
 
+        E element;
+        G group;
+        for (BufferFutureTask<E, R> futureTask : toConsumeFutureTasks) {
+            element = futureTask.getElement();
             try {
                 group = bufferGroupStrategy.doGroup(element);
             } catch (Exception ex) {
-                groupFailTasks.add(bufferFutureTask);
+                groupFailFutureTasks.add(futureTask);
                 continue;
             }
 
             // 添加task到分组列表
-            List<BufferFutureTask<E, R>> groupList = result.get(group);
+            List<BufferFutureTask<E, R>> groupList = groupFutureTasksMap.get(group);
             if (groupList == null) {
                 groupList = Lists.newArrayList();
-                result.put(group, groupList);
+                groupFutureTasksMap.put(group, groupList);
             }
 
-            groupList.add(bufferFutureTask);
+            groupList.add(futureTask);
         }
 
         // 完成分组失败异常响应
-        completeGroupFailTasks(groupFailTasks);
+        completeGroupFailTasks(groupFailFutureTasks);
 
-        return result;
+        return groupFutureTasksMap;
     }
 
-    private void completeGroupFailTasks(List<BufferFutureTask<E, R>> groupFailTasks) {
-        completeFails(groupFailTasks, new GroupFailException("实体分组失败！请检查缓冲分组策略配置。"));
+    private void completeGroupFailTasks(List<BufferFutureTask<E, R>> groupFailFutureTasks) {
+        completeFails(groupFailFutureTasks, new GroupFailException("[buffer-processor] 实体分组失败！请检查缓冲分组策略配置。"));
     }
 
-    private void doHandleGroupBufferFutureTasks(G group, List<BufferFutureTask<E, R>> bufferFutureTasks) {
+    private void doHandleGroupFutureTasks(G group, List<BufferFutureTask<E, R>> futureTasks) {
         try {
             // 提交任务到执行分组对象处理的线程池
-            processExecutorService.execute(new GroupBufferFutureTasksHandleTask(group, bufferFutureTasks));
+            processExecutorService.execute(new BufferGroupFuturesHandleTask(group, futureTasks));
         } catch (Exception ex) {
             // 提交任务失败处理，完成提交任务失败的异常响应
-            completeFails(bufferFutureTasks, ex);
+            completeFails(futureTasks, ex);
         }
     }
 
-    private void completeFails(List<BufferFutureTask<E, R>> bufferFutureTasks, Exception ex) {
-        if (bufferFutureTasks == null || bufferFutureTasks.isEmpty()) {
+    private void completeFails(List<BufferFutureTask<E, R>> futureTasks, Exception ex) {
+        if (futureTasks == null || futureTasks.isEmpty()) {
             return;
         }
 
-        for (BufferFutureTask<E, R> bufferFutureTask : bufferFutureTasks) {
-            bufferFutureTask.completeFail(ex);
+        for (BufferFutureTask<E, R> futureTask : futureTasks) {
+            futureTask.completeFail(ex);
         }
     }
 
-    private class GroupBufferFutureTasksHandleTask implements Runnable {
+    private class BufferGroupFuturesHandleTask implements Runnable {
 
         private final G group;
 
         private final List<BufferFutureTask<E, R>> bufferFutureTasks;
 
-        public GroupBufferFutureTasksHandleTask(G group, List<BufferFutureTask<E, R>> bufferFutureTasks) {
+        public BufferGroupFuturesHandleTask(G group, List<BufferFutureTask<E, R>> bufferFutureTasks) {
             this.group = group;
             this.bufferFutureTasks = bufferFutureTasks;
         }

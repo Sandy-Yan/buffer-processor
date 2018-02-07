@@ -17,8 +17,8 @@ public class ShardBufferProcessorV2<E, G, R, SK> {
     private final BufferProcessorNotFoundCallback<E, G, R, SK> bufferProcessorNotFoundCallback;
 
     public ShardBufferProcessorV2(ShardBufferProcessorContainer<E, G, R, SK> bufferProcessorContainer,
-                                  ShardBufferProcessorStrategyV2<E, SK> shardBufferProcessorStrategy,
-                                  BufferProcessorNotFoundCallback<E, G, R, SK> bufferProcessorNotFoundCallback) {
+                                ShardBufferProcessorStrategyV2<E, SK> shardBufferProcessorStrategy,
+                                BufferProcessorNotFoundCallback<E, G, R, SK> bufferProcessorNotFoundCallback) {
         this.bufferProcessorContainer = bufferProcessorContainer;
         this.shardBufferProcessorStrategy = shardBufferProcessorStrategy;
         this.bufferProcessorNotFoundCallback = bufferProcessorNotFoundCallback;

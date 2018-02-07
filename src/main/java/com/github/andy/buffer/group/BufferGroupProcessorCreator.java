@@ -14,20 +14,20 @@ public class BufferGroupProcessorCreator<E, G, R> {
 
     private final int bufferQueueSize;
     private final int consumeBatchSize;
-    private final int maxConsumeIntervalSleepMs;
+    private final int consumeWaitTimeoutMs;
     private final BufferGroupStrategy<E, G> bufferGroupStrategy;
     private final BufferGroupHandler<E, G, R> bufferGroupHandler;
     private final BufferProcessExecutorFactory bufferProcessExecutorFactory;
 
     public BufferGroupProcessorCreator(int bufferQueueSize,
                                        int consumeBatchSize,
-                                       int maxConsumeIntervalSleepMs,
+                                       int consumeWaitTimeoutMs,
                                        BufferGroupStrategy<E, G> bufferGroupStrategy,
                                        BufferGroupHandler<E, G, R> bufferGroupHandler,
                                        BufferProcessExecutorFactory bufferProcessExecutorFactory) {
         this.bufferQueueSize = bufferQueueSize;
         this.consumeBatchSize = consumeBatchSize;
-        this.maxConsumeIntervalSleepMs = maxConsumeIntervalSleepMs;
+        this.consumeWaitTimeoutMs = consumeWaitTimeoutMs;
         this.bufferGroupStrategy = bufferGroupStrategy;
         this.bufferGroupHandler = bufferGroupHandler;
         this.bufferProcessExecutorFactory = bufferProcessExecutorFactory;
@@ -35,7 +35,7 @@ public class BufferGroupProcessorCreator<E, G, R> {
 
     public BufferGroupProcessor<E, G, R> get() {
         return new BufferGroupProcessor<E, G, R>(bufferQueueSize, consumeBatchSize,
-                maxConsumeIntervalSleepMs, bufferGroupStrategy, bufferGroupHandler, newBufferProcessExecutor());
+                consumeWaitTimeoutMs, bufferGroupStrategy, bufferGroupHandler, newBufferProcessExecutor());
     }
 
     private ExecutorService newBufferProcessExecutor() {

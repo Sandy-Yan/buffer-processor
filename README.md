@@ -16,14 +16,14 @@
     
 // 创建Shard缓冲处理器
 ShardBufferProcessor<TestElement, Long, String> shardBufferProcessor = ShardBufferProcessor.<TestElement, Long, String>newBuilder()
-                                                                                       .bufferQueueSize(2000)//
-                                                                                       .consumeBatchSize(20)//
-                                                                                       .maxConsumeIntervalSleepMs(20)//
-                                                                                       .bufferGroupStrategy(new TestBufferGroupStrategy())//
-                                                                                       .bufferGroupHandler(new TestBufferGroupHandler())//
-                                                                                       //.bufferProcessExecutorFactory()//
-                                                                                       .shardBufferProcessorSize(2)//
-                                                                                       .shardBufferProcessorStrategy(new TestShardBufferProcessorStrategy())//
+                                                                                       .bufferQueueSize(3000) //
+                                                                                       .consumeBatchSize(20) //
+                                                                                       .consumeWaitTimeoutMs(10) //
+                                                                                       .bufferGroupStrategy(new TestBufferGroupStrategy()) //
+                                                                                       .bufferGroupHandler(new TestBufferGroupHandler()) //
+                                                                                       //.bufferProcessExecutorFactory()
+                                                                                       .shardBufferProcessorSize(2) //
+                                                                                       .shardBufferProcessorStrategy(new TestShardBufferProcessorStrategy()) //
                                                                                        .build();
        
 // 准备处理的对象
@@ -68,16 +68,16 @@ public class TestElement {
 public class TestBufferGroupStrategy implements BufferGroupStrategy<TestElement, Long> {
     
     @Override
-    public Long doGroup(TestElement element) throws Exception{
+    public Long doGroup(final TestElement element) throws Exception{
         return (long) (element.getId() % 10);
     }
 }
        
 // 缓冲分组后处理类
-public class TestBufferGroupHandler implements BufferGroupHandler<TestElement, String> {
+public class TestBufferGroupHandler implements BufferGroupHandler<TestElement, Long, String> {
     
     @Override
-    public Map<TestElement, String> handle(List<TestElement> elements) throws Exception {
+    public Map<TestElement, String> handle(final Long group, final List<TestElement> elements) throws Exception {
         Map<TestElement, String> resultMap = Maps.newHashMap();
         for (TestElement testElement : elements) {
             resultMap.put(testElement, testElement.getName());
@@ -88,10 +88,10 @@ public class TestBufferGroupHandler implements BufferGroupHandler<TestElement, S
        
 // 分片缓冲路由策略
 public class TestShardBufferProcessorStrategy implements ShardBufferProcessorStrategy<TestElement> {
-    
+   
     @Override
-    public int routeProcessorIDX(int processorsCount, TestElement element) {
-        return element.getId() % processorsCount;
+    public int routeIDX(int processorsCount, TestElement element) {
+        return (int)element.getId() % processorsCount;
     }
 }
 ```

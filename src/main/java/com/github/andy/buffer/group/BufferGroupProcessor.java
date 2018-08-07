@@ -123,7 +123,8 @@ public class BufferGroupProcessor<E, G, R> {
         try {
             Queues.drain(bufferQueue, futureTasks, consumeBatchSize, consumeWaitTimeoutMs, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            // clear interrupted status
+            Thread.interrupted();
         }
         return futureTasks;
     }
